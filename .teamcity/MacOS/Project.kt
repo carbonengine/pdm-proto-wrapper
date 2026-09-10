@@ -1,5 +1,6 @@
 package MacOS
 
+import jetbrains.buildServer.configs.kotlin.DslContext
 import jetbrains.buildServer.configs.kotlin.Project
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
@@ -19,16 +20,18 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
 import jetbrains.buildServer.configs.kotlin.buildFeatures.provideAwsCredentials
 
-val Release = CarbonBuildMacOS("Release MacOS (Launcher & Monolith)", "Release", "nmc-universal-osx-static-release")
+val arm64_Release = CarbonBuildMacOS("arm64 Release MacOS (Launcher & Monolith)", "Release", "arm64-osx-static-release", "aarch64")
+val x64_Release = CarbonBuildMacOS("x64 Release MacOS (Launcher & Monolith)", "Release", "x64-osx-static-release", "x86_64")
 
 object Project : Project({
     id("MacOS")
     name = "macOS"
 
-    buildType(Release)
+    buildType(arm64_Release)
+    buildType(x64_Release)
 })
 
-class CarbonBuildMacOS(buildName: String, configType: String, preset: String) : BuildType({
+class CarbonBuildMacOS(buildName: String, configType: String, preset: String, agentArchitecture: String) : BuildType({
     id(buildName.toId())
     name = buildName
 
@@ -61,7 +64,7 @@ class CarbonBuildMacOS(buildName: String, configType: String, preset: String) : 
 
 
     vcs {
-        root(AbsoluteId("Carbon_PlatformPdmProtoWrapper_PlatformPdmProtoWrapper"),"+:. => %github_checkout_folder%")
+        root(DslContext.settingsRootId, "+:. => %github_checkout_folder%")
         root(AbsoluteId("CarbonPipelineTools"), "+:. => carbon_pipeline_tools")
         cleanCheckout = true
     }
@@ -120,7 +123,7 @@ class CarbonBuildMacOS(buildName: String, configType: String, preset: String) : 
 
     triggers {
         vcs {
-            triggerRules = "+:root=${AbsoluteId("Carbon_PlatformPdmProtoWrapper_PlatformPdmProtoWrapper").id}:."
+            triggerRules = "+:root=${DslContext.settingsRootId.id}:."
 
             param("disabled", "true")
         }
@@ -165,6 +168,7 @@ class CarbonBuildMacOS(buildName: String, configType: String, preset: String) : 
 
     requirements {
         startsWith("teamcity.agent.jvm.os.name", "Mac OS X")
+        startsWith("teamcity.agent.jvm.os.arch", agentArchitecture)
     }
 })
 

@@ -1,6 +1,4 @@
-# Copyright © 2026 CCP ehf.
-
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 project(platform_pdm_proto_wrapper VERSION 2.0.0)
 
 find_package(carbon-pdm CONFIG REQUIRED)
@@ -9,22 +7,35 @@ find_package(protobuf CONFIG REQUIRED)
 OPTION(BUILD_SHARED_LIBS "build using shared libraries" OFF)
 
 add_library(platform_pdm_proto_wrapper
-    generated/eve_public/app/platform.pb.cc
-    generated/eve_launcher/pdm.pb.cc
-    include/pdm/protobuf.h
-    src/protobuf_template.h
-    src/protobuf_public.cpp
-    src/protobuf_launcher.cpp
-    src/semver.h
-    src/semver.cpp
+        generated/eve_public/app/platform.pb.cc
+        generated/eve_launcher/pdm.pb.cc
+        include/pdm/protobuf.h
+        src/protobuf_template.h
+        src/protobuf_public.cpp
+        src/protobuf_launcher.cpp
+        src/semver.h
+        src/semver.cpp
 )
+
+find_program(PROTOC_EXE protoc)
+
+add_custom_command(OUTPUT
+        generated/eve_launcher/pdm.pb.cc
+        generated/eve_launcher/pdm.pb.h
+        generated/eve_public/app/platform.pb.cc
+        generated/eve_public/app/platform.pb.h
+        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
+        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
+        COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref 4d8a22b2b9eadfbec8fad6e44986feab33dd4951"
+)
+
 target_link_libraries(platform_pdm_proto_wrapper PUBLIC pdm protobuf::libprotobuf)
 get_target_property(PDM_INTERFACE_INCLUDE_DIRECTORIES pdm INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(platform_pdm_proto_wrapper
         PUBLIC
-            $<INSTALL_INTERFACE:include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/generated>
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
 )
 
 option(USE_WITH_PROTOBUF_DLL "Is this library going to be used with protobuf as DLL?" OFF)
@@ -56,7 +67,12 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
         if(COMBINE_STATIC_LIBS)
 
             if (WIN32)
-                find_program(LIB_TOOL_EXE lib REQUIRED)
+                # CMAKE_AR should actually be the path to lib.exe on Windows.
+                # However, as this cache var is marked as INTERNAL we don't want to rely on that always being true
+                # Therefore, we use is as a HINT input to find_program.
+                cmake_path(GET CMAKE_AR PARENT_PATH LIB_PATH_HINT)
+                find_program(LIB_TOOL_EXE NAMES lib lib.exe REQUIRED HINTS ${LIB_PATH_HINT})
+
                 #requires lib.exe to be available msvc
                 add_custom_command(TARGET platform_pdm_proto_wrapper POST_BUILD
                         COMMAND ${LIB_TOOL_EXE} /OUT:$<TARGET_FILE_DIR:platform_pdm_proto_wrapper>/${PDM_WITH_PROTO_NAME}

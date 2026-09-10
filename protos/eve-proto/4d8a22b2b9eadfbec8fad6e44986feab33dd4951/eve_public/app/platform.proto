@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package eve_public.app.platform;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/ccpgames/eve-proto-go/generated/eve_public/application/platform";
+
+enum Bitness {
+  BITNESS_UNSPECIFIED = 0;
+  BITNESS_32 = 1;
+  BITNESS_64 = 2;
+}
+
+// see https://semver.org/spec/v2.0.0.html for details
+message SemanticVersion {
+  uint32 major = 1;
+  uint32 minor = 2;
+  uint32 patch = 3;
+  string prerelease = 4;
+  string build = 5;
+}
+
+message OS {
+  enum Kind {
+    KIND_UNSPECIFIED = 0; // We couldn't detect the operating system
+    KIND_WINDOWS = 1;
+    KIND_MACOS = 2;
+    KIND_WINE = 3; // Need to query wine.hostOS for OS name
+  }
+  message GraphicsAPIs {
+    bool metal_supported = 1; // Is the Metal graphics API supported? Currently only true on macOS
+    bool vulkan_supported = 2; // Is the Vulkan graphics API supported?
+    string vulkan_highest_supported_version = 3; // highest supported vulkan version, as reported by the underlying driver. May be empty.
+    string d3d_highest_supported_version = 4; // Only available on Windows
+  }
+  message Wine {
+    string version = 1; // may be empty when not running under Wine
+    string host_os = 2; // macOS, linux, etc. May be empty when not running under Wine
+  }
+  message StreamingService {
+    enum Provider {
+      PROVIDER_UNSPECIFIED = 0; // Information on the provider has not been specified
+      PROVIDER_UNKNOWN = 1; // Streaming service detected, but unknown provider
+      PROVIDER_INTEL = 2;
+    }
+    Provider provider = 1; // The company providing the streaming service
+  }
+  Kind type = 1; // the kind OS that is running, e.g. Windows, macOS, etc.
+  string name = 2; // f.e. Windows 10 Enterprise
+  Bitness bitness = 3; // operating system bitness
+  string major_version = 4; // f.e. 10
+  string minor_version = 5; // f.e. 0
+  string build_number = 6; // f.e. 19041
+  string kernel_version = 7; // f.e. 6.3
+  string username = 8; // name of the operating system user
+  string user_locale = 9; // the operating system's locale, e.g. en-US
+  bool is_remote_session = 10; // is this running via remote desktop?
+  GraphicsAPIs graphics_apis = 11; // OS specific information about available graphics APIs
+  Wine wine = 12; // Wine specific details
+  StreamingService streaming_service = 13; // Information about the detected streaming service
+}
+
+message Machine {
+  message CPU {
+    enum Architecture {
+      ARCHITECTURE_UNSPECIFIED = 0;
+      ARCHITECTURE_X86 = 1;
+      ARCHITECTURE_X86_64 = 2;
+      ARCHITECTURE_ARM = 3;
+      ARCHITECTURE_ARM64 = 4;
+    }
+    Bitness bitness = 1; // bitness, e.g. hardware register size, of the CPU
+    int32 logical_core_count = 2;
+    string brand = 3; // the processor name, f.e. Intel(R) Core(TM) i7-8665U CPU @ 1.90GHz
+    string vendor = 4; // Vendor specific identifier: GenuineIntel, GenuineAmd, etc.
+    int32 model = 5; // internal code identifying the CPU model
+    int32 stepping = 6; // internal code identifying the CPU stepping
+    Architecture architecture = 7; // CPU architecture
+    repeated string extensions = 8; // list of extensions which the CPU supports
+    uint32 frequency = 9; // frequency of the CPU in MHz
+  }
+  message VM {
+    bool is_suspected_vm = 1; // Are we a hypervisor guest or a virtual machine?
+    bool has_hypervisor_bit = 2; // Processor bit indicating if the machine has a hypervisor
+    string hypervisor_name = 3; // may be empty when not running in a hypervisor
+    bool is_hypervisor_guest_os = 4; // Are we running as a hypervisor virtual machine?
+    bool has_vm_execution_timing = 5; // Are we emulating CPU instructions? (virtual machine)
+  }
+  message Monitor {
+    string name = 1; // as reported by the OS, may be empty
+    int32 horizontal_resolution = 2; // in pixels
+    int32 vertical_resolution = 3; // in pixels
+    int32 bits_per_color = 4; // 8 or 10 (or possibly more)
+    int32 refresh_rate = 5; // in Hertz, Usually 60, but could be up to 240 or more
+    int32 dpi_scaling_percent = 6; // 100% for no scaling
+  }
+  message GPU {
+    message Driver {
+      string date = 1; // driver release date; may be empty if it couldn't be detected
+      string vendor = 2; // Nvidia, AMD, etc.; may be empty if it couldn't be detected
+      string version = 3; // driver version; may be empty if it couldn't be detected
+    }
+    string description = 1; // Name of the GPU
+    int32 vendor_id = 2; // OS specific vendor identifier
+    int32 device_id = 3; // OS specific device identifier
+    int32 revision = 4; // Hardware revision of the GPU
+    int64 video_memory = 5; // total available physical video memory
+    Driver driver = 6; // driver information for this GPU
+    uint32 core_count = 7; // number of cores on this GPU
+  }
+  message NetworkAdapter {
+    string name = 1; // as reported by the OS, may be empty
+    bytes mac_address = 2;
+    bytes uuid = 3; // uuid of the network adapter as reported by the OS. May be empty.
+  }
+  message HardDrive {
+    enum DriveType {
+      DRIVETYPE_UNSPECIFIED = 0;
+      DRIVETYPE_SSD = 1;
+      DRIVETYPE_HDD = 2;
+    }
+    string name = 1; // firmware name of the drive
+    DriveType drive_type = 2; // SSD or HDD
+    uint64 size = 3; // total size of drive in bytes
+  }
+  enum BatteryDetection {
+    BATTERY_UNSPECIFIED = 0;
+    BATTERY_DETECTED = 1;
+    BATTERY_NOT_DETECTED = 2;
+  }
+  string model = 1; // model of the computer. may be spoofed!
+  string name = 2; // name of the computer
+  bytes uuid = 3; // an identifier for the underlying hardware as reported by the operating system. may be spoofed!
+  int64 total_memory = 4; // total amount of physically available memory
+  int32 monitor_count = 5; // number of visible display monitors
+  CPU cpu = 6; // CPU specific information
+  VM vm = 7; // virtual machine specific information
+  repeated Monitor monitors = 8; // information about all detected monitors
+  repeated GPU gpus = 9; // information about all detected gpus
+  repeated NetworkAdapter network_adapters = 10; // information about all detected network adapters
+  BatteryDetection battery_detection = 11; // indicating if the current machine has a battery
+  repeated HardDrive hard_drives = 12; // information about mass storage hard drives
+}
+
+message Process {
+  bool running_under_rosetta = 1; // is current process running under Rosetta emulation on macOS
+  Bitness bitness = 2; // bitness of the process from which the data was generated
+}
+
+message Information {
+  SemanticVersion version = 1; // version of the Platform Detection Module that was used
+  google.protobuf.Timestamp timestamp = 2; // when was this data retrieved
+  Bitness process_bitness = 3 [deprecated = true]; // Deprecated: moved to Process.bitness
+  OS os = 4; // properties of the running operating system
+  Machine machine = 5; // properties of the underlying computer
+  Process process = 6; // properties of the executing process
+}
