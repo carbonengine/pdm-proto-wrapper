@@ -3,6 +3,8 @@
 package MacOS
 
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
+import jetbrains.buildServer.configs.kotlin.buildFeatures.pullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.vcsLabeling
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 import jetbrains.buildServer.configs.kotlin.buildSteps.python
@@ -15,7 +17,7 @@ class UniversalBuild() : BuildType({
     name = "macOS Universal Build"
 
     params{
-        param("carbon-pipeline-tools-ref", "refs/heads/main")
+        param("carbon-pipeline-tools-ref", "refs/tags/v0.1.0")
         param("universal-output-dir", "%system.teamcity.build.workingDir%/output_build")
         param("universal-lib-path", "lib/macOS/universal/AppleClang/")
         param("x64-lib-path", "lib/macOS/x64")
@@ -31,9 +33,10 @@ class UniversalBuild() : BuildType({
         )
     }
 
-    artifactRules = "%universal-output-dir%"
+    artifactRules = "%universal-output-dir% => artifact.zip"
 
     vcs {
+        root(DslContext.settingsRootId, "-:.")
         root(AbsoluteId("CarbonPipelineTools"), "+:carbon/.=>carbon")
 
         checkoutMode = CheckoutMode.ON_AGENT
@@ -88,7 +91,7 @@ class UniversalBuild() : BuildType({
             }
 
             artifacts {
-                artifactRules = "**/*=>%system.teamcity.build.workingDir%/arm64"
+                artifactRules = "artifact.zip!**=>%system.teamcity.build.workingDir%/arm64"
             }
         }
         dependency(MacOS.x64_Release) {
@@ -97,7 +100,19 @@ class UniversalBuild() : BuildType({
             }
 
             artifacts {
-                artifactRules = "**/*=>%system.teamcity.build.workingDir%/x64"
+                artifactRules = "artifact.zip!**=>%system.teamcity.build.workingDir%/x64"
+            }
+        }
+    }
+
+    features {
+        pullRequests {
+            vcsRootExtId = "${DslContext.settingsRootId.id}"
+            provider = github {
+                authType = token {
+                    token = "%GITHUB_CARBON_PAT%"
+                }
+                filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
             }
         }
     }
