@@ -17,17 +17,23 @@ add_library(platform_pdm_proto_wrapper
         src/semver.cpp
 )
 
-find_program(PROTOC_EXE protoc)
+find_program(PROTOC_EXE protoc REQUIRED)
 
-add_custom_command(OUTPUT
-        generated/eve_launcher/pdm.pb.cc
-        generated/eve_launcher/pdm.pb.h
-        generated/eve_public/app/platform.pb.cc
-        generated/eve_public/app/platform.pb.h
+add_custom_target(generated_protos ALL
         COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
         COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
+        BYPRODUCTS
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.cc
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.h
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.cc
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.h
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher/pdm.proto
+            ${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app/platform.proto
         COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref 4d8a22b2b9eadfbec8fad6e44986feab33dd4951"
+        VERBATIM
 )
+add_dependencies(platform_pdm_proto_wrapper generated_protos)
 
 target_link_libraries(platform_pdm_proto_wrapper PUBLIC pdm protobuf::libprotobuf)
 get_target_property(PDM_INTERFACE_INCLUDE_DIRECTORIES pdm INTERFACE_INCLUDE_DIRECTORIES)
