@@ -19,18 +19,21 @@ add_library(platform_pdm_proto_wrapper
 
 find_program(PROTOC_EXE protoc REQUIRED)
 
+set(EVE_PROTO_REF "36c352316b8d77d8719828ff4d5880a271d432d5")
+set(EVE_PROTO_BASEPATH "${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/${EVE_PROTO_REF}")
+
 add_custom_target(generated_protos ALL
-        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
-        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
+        COMMAND ${PROTOC_EXE} --proto_path=${EVE_PROTO_BASEPATH}/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
+        COMMAND ${PROTOC_EXE} --proto_path=${EVE_PROTO_BASEPATH}/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
         BYPRODUCTS
             ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.cc
             ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.h
             ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.cc
             ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.h
         DEPENDS
-            ${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher/pdm.proto
-            ${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app/platform.proto
-        COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref 4d8a22b2b9eadfbec8fad6e44986feab33dd4951"
+            ${EVE_PROTO_BASEPATH}/eve_launcher/pdm.proto
+            ${EVE_PROTO_BASEPATH}/eve_public/app/platform.proto
+        COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref ${EVE_PROTO_REF}"
         VERBATIM
 )
 add_dependencies(platform_pdm_proto_wrapper generated_protos)

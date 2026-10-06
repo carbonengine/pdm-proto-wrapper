@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package platform;
+package eve_public.app.platform;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/ccpgames/eve-proto-go/generated/eve_launcher/platform";
+option go_package = "github.com/ccpgames/eve-proto-go/generated/eve_public/application/platform";
 
 enum Bitness {
-  BITNESS_UNKNOWN = 0;
+  BITNESS_UNSPECIFIED = 0;
   BITNESS_32 = 1;
   BITNESS_64 = 2;
 }
@@ -23,10 +23,11 @@ message SemanticVersion {
 
 message OS {
   enum Kind {
-    UNKNOWN = 0; // We couldn't detect the operating system
-    WINDOWS = 1;
-    MACOS = 2;
-    WINE = 3; // Need to query wine.hostOS for OS name
+    KIND_UNSPECIFIED = 0; // We couldn't detect the operating system
+    KIND_WINDOWS = 1;
+    KIND_MACOS = 2;
+    KIND_WINE = 3; // Need to query wine.hostOS for OS name
+    KIND_LINUX = 4;
   }
   message GraphicsAPIs {
     bool metal_supported = 1; // Is the Metal graphics API supported? Currently only true on macOS
