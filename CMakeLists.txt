@@ -17,19 +17,32 @@ add_library(platform_pdm_proto_wrapper
         src/semver.cpp
 )
 
-find_program(PROTOC_EXE protoc)
+find_program(PROTOC_EXE protoc REQUIRED)
 
-add_custom_command(OUTPUT
-        generated/eve_launcher/pdm.pb.cc
-        generated/eve_launcher/pdm.pb.h
-        generated/eve_public/app/platform.pb.cc
-        generated/eve_public/app/platform.pb.h
-        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
-        COMMAND ${PROTOC_EXE} --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/4d8a22b2b9eadfbec8fad6e44986feab33dd4951/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
-        COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref 4d8a22b2b9eadfbec8fad6e44986feab33dd4951"
+set(EVE_PROTO_REF "36c352316b8d77d8719828ff4d5880a271d432d5")
+set(EVE_PROTO_BASEPATH "${CMAKE_CURRENT_SOURCE_DIR}/protos/eve-proto/${EVE_PROTO_REF}")
+
+add_custom_target(generated_protos ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app
+        COMMAND ${PROTOC_EXE} --proto_path=${EVE_PROTO_BASEPATH}/eve_launcher --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher pdm.proto
+        COMMAND ${PROTOC_EXE} --proto_path=${EVE_PROTO_BASEPATH}/eve_public/app --cpp_out=${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app platform.proto
+        BYPRODUCTS
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.cc
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_launcher/pdm.pb.h
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.cc
+            ${CMAKE_CURRENT_BINARY_DIR}/generated/eve_public/app/platform.pb.h
+        DEPENDS
+            ${EVE_PROTO_BASEPATH}/eve_launcher/pdm.proto
+            ${EVE_PROTO_BASEPATH}/eve_public/app/platform.proto
+        COMMENT "Generating protos for pdm.proto and platform.proto from eve-proto ref ${EVE_PROTO_REF}"
+        VERBATIM
 )
+add_dependencies(platform_pdm_proto_wrapper generated_protos)
 
-target_link_libraries(platform_pdm_proto_wrapper PUBLIC pdm protobuf::libprotobuf)
+# Note: protobuf must be listed before pdm. On Linux, pdm is built as LTO-only (GCC IR) objects while protobuf is not.
+# When pdm comes first, GNU ld lets pdm's IR copies of shared inline/template symbols prevail and then discards
+# protobuf's copies, which leads to undefined references once LTO has optimised the IR copies away.
+target_link_libraries(platform_pdm_proto_wrapper PUBLIC protobuf::libprotobuf pdm)
 get_target_property(PDM_INTERFACE_INCLUDE_DIRECTORIES pdm INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(platform_pdm_proto_wrapper
         PUBLIC

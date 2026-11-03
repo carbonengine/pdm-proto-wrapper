@@ -73,6 +73,8 @@ namespace
 			return platform::OS::PDM_PROTO_OS_KIND(MACOS);
 		case PDM::OS::WINE:
 			return platform::OS::PDM_PROTO_OS_KIND(WINE);
+		case PDM::OS::LINUX:
+			return platform::OS::PDM_PROTO_OS_KIND(LINUX);
 		default:
 			throw std::invalid_argument("Invalid osType");
 		}
