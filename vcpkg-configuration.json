@@ -8,7 +8,7 @@
     {
       "kind": "git",
       "repository": "https://github.com/carbonengine/vcpkg-registry.git",
-      "baseline": "2339631e734bb8a1fbc8150ee43466e5e37d2935",
+      "baseline": "fefc678ce92b41e53324d08a5485be8514256432",
       "packages": [
         "carbon-*",
         "greenlet",
