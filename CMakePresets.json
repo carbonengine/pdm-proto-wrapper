@@ -48,7 +48,8 @@
         "rhs": "Linux"
       },
       "cacheVariables": {
-        "CMAKE_GENERATOR": "Ninja"
+        "CMAKE_GENERATOR": "Ninja",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/vendor/github.com/carbonengine/vcpkg-registry/triplets"
       },
       "hidden": true
     },
