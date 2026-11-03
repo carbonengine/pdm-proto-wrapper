@@ -47,6 +47,9 @@
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
       },
+      "cacheVariables": {
+        "CMAKE_GENERATOR": "Ninja"
+      },
       "hidden": true
     },
     {
